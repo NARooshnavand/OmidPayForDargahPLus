@@ -1,0 +1,9 @@
+{
+    "name": "naasser/omid-pay-for-dargah-plus",
+    "autoload": {
+        "psr-4": {
+            "DargahPlusAddon\\Zarinpal\\": "App/"
+        }
+    },
+    "require": {}
+}
