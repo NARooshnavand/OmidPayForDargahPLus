@@ -2,7 +2,7 @@
     "name": "naasser/omid-pay-for-dargah-plus",
     "autoload": {
         "psr-4": {
-            "DargahPlusAddon\\Zarinpal\\": "App/"
+            "DargahPlusAddon\\Omidpay\\": "App/"
         }
     },
     "require": {}
