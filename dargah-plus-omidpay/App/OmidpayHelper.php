@@ -1,8 +1,7 @@
 <?php
 
 namespace DargahPlusAddon\Omidpay;
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\GuzzleException;
+
 use Nasser\Dargahplus\Providers\GatewayParams;
 use Nasser\Dargahplus\Providers\GateWay;
 use Exception;
@@ -10,7 +9,7 @@ use Exception;
 class OmidpayHelper extends GatewayParams implements GateWay
 {
     private $apiGenerateTokenUrl =  'https://ref.sayancard.ir/ref-payment/RestServices/mts/generateTokenWithNoSign/';
-    private $apiPaymentUrl = 'https://say.shaparak.ir/_ipgw_/merchant/token/';
+    private $apiPaymentUrl = 'https://say.shaparak.ir/_ipgw_//MainTemplate/payment/';
     private $apiVerificationUrl = 'https://ref.sayancard.ir/ref-payment/RestServices/mts/verifyMerchantTrans/';
    
 
@@ -35,33 +34,24 @@ class OmidpayHelper extends GatewayParams implements GateWay
             'TransType' => 'EN_GOODS',
             'ReserveNum' => $this->get('order_id'),
             'MerchantId' => $this->get('merchantid'),
-            'TerminalID' => $this->get('terminalid'),
             'Amount' => $this->get('amount'),
             'RedirectUrl' => $this->get('callbackurl'),
         );
-        $client = new Client();        
-
-        $response = $client->request(
-            "POST",
-            $this->apiGenerateTokenUrl,
-            [
-                'json' => $data,
-                "headers" => [
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json',
-                    'User-Agent' => '',
-                ],
-            ]
-        );
-
-        $responseStatus = $response->getStatusCode();
-
-        if ($responseStatus != 200) {
-            throw new Exception($this->translateStatus("unknown_error"));
-        }
-
-        $jsonBody = $response->getBody()->getContents();
-        $responseData = json_decode($jsonBody, true);
+        $data_string = json_encode($data);
+		
+		$ch = curl_init($this->apiGenerateTokenUrl);
+		curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+		curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+			'Content-Type: application/json',
+			'Content-Length: ' . strlen($data_string)
+		));
+		
+		$result = curl_exec($ch);
+        curl_close($ch);
+        
+        $responseData = json_decode($result, true);
 
         $result = $responseData['Result'];
         if (!$this->isSucceed($result)) {
@@ -78,30 +68,33 @@ class OmidpayHelper extends GatewayParams implements GateWay
     {
         $token = $_POST['token'];
         $refNum = $_POST['RefNum'];
-        $client = new Client();        
-        $response = $client->request(
-            "POST",
-            $this->apiVerificationUrl,
-            [
-                "json" => [
+        $data = [
                     'WSContext' => [
                         'UserId' => $this->get('username'),
                         'Password' => $this->get('password'),
                     ],
                     'Token' => $token,
                     'RefNum' => $refNum
-                ],
-                "headers" => [
-                    'Content-Type' => 'application/json',
-                    'Accept' => 'application/json',
-                    'User-Agent' => '',
-                ],
-            ]
-        );
+                ];
+        $data_string = json_encode($data);
+		
+		$ch = curl_init($this->apiVerificationUrl);
+		curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+		curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+			'Content-Type: application/json',
+			'Content-Length: ' . strlen($data_string)
+		));
+		
+		$result = curl_exec($ch);
+        curl_close($ch);
+        
 
-        $body = json_decode($response->getBody()->getContents());
+        $body = json_decode($result);
 
         $result = $body->Result;
+       
         if (!$this->isSucceed($result)) {
             throw new Exception($this->translateStatus($result));
         }
@@ -119,8 +112,8 @@ class OmidpayHelper extends GatewayParams implements GateWay
         
         $token = $this->transaction_id;
 		echo '<form id="redirect_to_omidpay" method="post" action="'.$this->apiPaymentUrl.'" enctype="multipart/form-data" style="display:none !important;"  >
-			<input type="hidden"  name="Token" value="' . $token . '" />
-			<input type="hidden"  name="Lang" value="fa" />
+			<input type="hidden"  name="token" value="' . $token . '" />
+			<input type="hidden"  name="language" value="fa" />
 			<input type="submit" value="Pay"/>
 			</form>
 			<script language="JavaScript" type="text/javascript">
